@@ -1,0 +1,114 @@
+CREATE DATABASE webdb;
+USE webdb;
+
+CREATE TABLE engagement_metrics (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    source_type ENUM('web', 'social') NOT NULL,
+    platform VARCHAR(50),           -- Facebook, Instagram, Website
+    content_id VARCHAR(255),        -- post_id or page_url
+    likes INT DEFAULT 0,
+    shares INT DEFAULT 0,
+    comment_text TEXT,              -- actual comment
+    page_visits INT DEFAULT 0,
+    recorded_at DATETIME NOT NULL
+);
+
+INSERT INTO engagement_metrics
+(source_type, platform, content_id, likes, shares, comment_text, page_visits, recorded_at)
+VALUES
+('social', 'Instagram', 'IG_POST_045', 1, 0, 'Love this post! 🔥', 0, NOW());
+
+INSERT INTO engagement_metrics
+(source_type, platform, content_id, likes, shares, comment_text, page_visits, recorded_at)
+VALUES
+('web', 'Website', '/home', 0, 0, NULL, 1, NOW());
+
+INSERT INTO engagement_metrics
+(source_type, platform, content_id, likes, shares, comment_text, page_visits, recorded_at)
+VALUES
+-- Instagram comments
+('social', 'Instagram', 'IG_POST_101', 1, 0, 'Amazing content, really helpful!', 0, '2026-02-01 09:15:00'),
+('social', 'Instagram', 'IG_POST_101', 1, 0, 'Loved the visuals 🔥', 0, '2026-02-01 09:20:00'),
+('social', 'Instagram', 'IG_POST_102', 1, 1, 'This explains it perfectly, thanks!', 0, '2026-02-01 10:05:00'),
+
+-- Facebook comments
+('social', 'Facebook', 'FB_POST_210', 1, 0, 'Very informative post.', 0, '2026-02-01 11:00:00'),
+('social', 'Facebook', 'FB_POST_210', 1, 1, 'Shared this with my team!', 0, '2026-02-01 11:10:00'),
+('social', 'Facebook', 'FB_POST_211', 1, 0, 'Could you make a follow-up?', 0, '2026-02-01 11:45:00'),
+
+-- Twitter/X comments
+('social', 'Twitter', 'TW_POST_330', 1, 1, 'Short and useful thread 👍', 0, '2026-02-01 12:30:00'),
+('social', 'Twitter', 'TW_POST_331', 1, 0, 'Nice insights!', 0, '2026-02-01 12:50:00'),
+
+-- Website page visits (no comments)
+('web', 'Website', '/home', 0, 0, NULL, 1, '2026-02-01 00:05:00'),
+('web', 'Website', '/home', 0, 0, NULL, 1, '2026-02-01 00:10:00'),
+('web', 'Website', '/products', 0, 0, NULL, 1, '2026-02-01 08:20:00'),
+('web', 'Website', '/products', 0, 0, NULL, 1, '2026-02-01 09:40:00'),
+('web', 'Website', '/contact', 0, 0, NULL, 1, '2026-02-01 10:55:00'),
+
+-- Blog page with comments
+('web', 'Website', '/blog/how-to-sql', 0, 0, 'This article clarified SQL joins for me.', 1, '2026-02-01 13:10:00'),
+('web', 'Website', '/blog/how-to-sql', 0, 0, 'Please add more examples!', 1, '2026-02-01 13:25:00');
+
+select * from engagement_metrics;
+
+-- total page visits per web page
+SELECT content_id, SUM(page_visits) AS total_visits
+FROM engagement_metrics
+WHERE source_type = 'web'
+GROUP BY content_id;
+
+-- Comments Per Platform
+SELECT platform, COUNT(comment_text) AS total_comments
+FROM engagement_metrics
+WHERE comment_text IS NOT NULL
+GROUP BY platform;
+
+-- Daily engagement (likes + shares + comments + page visits)
+SELECT
+    DATE(recorded_at) AS engagement_date,
+    SUM(likes + shares + page_visits +
+        CASE WHEN comment_text IS NOT NULL THEN 1 ELSE 0 END) AS total_engagement
+FROM engagement_metrics
+GROUP BY engagement_date
+ORDER BY engagement_date;
+
+-- Hourly engagement (great for time analysis)
+SELECT
+    DATE_FORMAT(recorded_at, '%Y-%m-%d %H:00:00') AS hour_slot,
+    COUNT(comment_text) AS comments,
+    SUM(likes) AS likes,
+    SUM(shares) AS shares,
+    SUM(page_visits) AS visits
+FROM engagement_metrics
+GROUP BY hour_slot
+ORDER BY hour_slot;
+
+-- Only Web Traffic
+SELECT *
+FROM engagement_metrics
+WHERE source_type = 'web'
+ORDER BY recorded_at;
+
+-- Only Social Media Engagement
+SELECT *
+FROM engagement_metrics
+WHERE source_type = 'social'
+ORDER BY recorded_at;
+
+-- Compare Web vs Social (Summary)
+SELECT
+    source_type,
+    COUNT(*) AS total_records,
+    SUM(likes) AS total_likes,
+    SUM(shares) AS total_shares,
+    SUM(page_visits) AS total_page_visits,
+    COUNT(comment_text) AS total_comments
+FROM engagement_metrics
+GROUP BY source_type;
+
+-- Latest Engagement First
+SELECT *
+FROM engagement_metrics
+ORDER BY recorded_at DESC;
